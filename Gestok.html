@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<title>Gestok — Gestión de recursos y costos</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+
+<style>
+  /* ---------- Root / Theme ---------- */
+  :root{
+    --bg:#f6f7f9;
+    --card:#ffffff;
+    --muted:#6b7280;
+    --accent:#2f6f9f;
+    --accent-strong:#254e6f;
+    --danger:#ef4444;
+    --radius:12px;
+    --gap:12px;
+    --touch:18px; /* base touch size */
+    font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+  }
+  html,body{height:100%;margin:0;background:var(--bg);color:#0f172a;-webkit-tap-highlight-color: transparent;}
+  .app{max-width:980px;margin:0 auto;min-height:100vh;padding-bottom:80px;}
+  header.appbar{
+    display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--card);
+    box-shadow:0 1px 6px rgba(2,6,23,0.06);position:sticky;top:0;z-index:50;
+  }
+  .brand{display:flex;gap:10px;align-items:center}
+  .logo{
+    width:44px;height:44px;border-radius:8px;background:linear-gradient(180deg,var(--accent),var(--accent-strong));
+    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px;
+  }
+  .title{font-weight:600;font-size:16px}
+  .subtitle{font-size:12px;color:var(--muted)}
+  /* Hamburger */
+  .hambtn{width:44px;height:44px;border-radius:8px;border:0;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .hambtn svg{width:22px;height:22px;fill:var(--accent-strong)}
+  /* Drawer (simple, slides from top) */
+  .drawer { position: fixed; left:0; right:0; top:-100%; background:var(--card); box-shadow:0 8px 30px rgba(15,23,42,0.12); z-index:60; border-bottom-left-radius:12px; border-bottom-right-radius:12px; transition: top .22s ease; padding:12px; }
+  .drawer.open{ top:56px; } /* below header */
+  .drawer .nav{ display:flex; flex-direction:column; gap:8px; padding:6px 4px; }
+  .nav button{ text-align:left; padding:12px; border-radius:10px; border:0; background:transparent; font-weight:600; color:var(--accent-strong); }
+  .nav button:hover{ background:rgba(47,111,159,0.06); }
+
+  /* Page card */
+  .card{background:var(--card);border-radius:12px;padding:14px;margin:12px 12px 0 12px;box-shadow:0 1px 8px rgba(2,6,23,0.04);}
+  .muted{color:var(--muted);font-size:13px}
+  .kpi{display:flex;gap:8px;flex-wrap:wrap}
+  .kpi .item{background:#fff;padding:10px;border-radius:10px;min-width:120px;text-align:center}
+
+  /* Form controls touch friendly */
+  input[type=text], input[type=number], input[type=datetime-local], select, textarea {
+    width:100%; padding:12px; font-size:16px; border-radius:10px; border:1px solid #e6e9ee; margin-top:6px; margin-bottom:10px;
+  }
+  button.btn { padding:12px 14px; border-radius:10px; border:0; font-weight:600; font-size:15px; cursor:pointer; }
+  .btn-primary{ background:var(--accent); color:#fff; }
+  .btn-ghost{ background:transparent; border:1px solid #e6e9ee; color:var(--accent-strong); }
+  .btn-danger{ background:var(--danger); color:#fff; }
+
+  /* Table responsive */
+  .table-wrap{ overflow:auto; border-radius:8px; }
+  table{ width:100%; border-collapse:collapse; min-width:700px; }
+  th,td{ padding:10px; border-bottom:1px solid #f1f5f9; text-align:left; font-size:14px; }
+  th{ background:#fbfcfe; font-weight:700; font-size:13px; }
+
+  /* Charts */
+  canvas{ width:100% !important; height:auto !important; }
+
+  /* Footer */
+  footer{ text-align:center; color:var(--muted); padding:18px; margin-top:24px; font-size:13px; }
+
+  /* Responsive tweaks for small phones */
+  @media (max-width:420px){
+    .card{ margin-left:10px;margin-right:10px;padding:12px; }
+    .kpi .item{ min-width:110px; padding:8px; font-size:13px; }
+    .title{ font-size:15px; }
+    .logo{ width:40px;height:40px;font-size:16px; }
+  }
+</style>
+</head>
+<body>
+  <div class="app" role="application">
+    <!-- App bar -->
+    <header class="appbar" role="banner">
+      <div class="brand" aria-hidden>
+        <div class="logo">GK</div>
+        <div>
+          <div class="title">Gestok</div>
+          <div class="subtitle">Gestión eficiente de recursos</div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:8px">
+        <button id="hamb" class="hambtn" aria-label="Abrir menú">
+          <!-- simple hamburger icon -->
+          <svg viewBox="0 0 24 24" aria-hidden><path d="M3 6h18v2H3zM3 11h18v2H3zM3 16h18v2H3z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Drawer (simple top drawer, not complex) -->
+    <div id="drawer" class="drawer" role="navigation" aria-hidden="true">
+      <nav class="nav" aria-label="Navegación principal">
+        <button data-page="dashboard">Inicio</button>
+        <button data-page="resources">Recursos</button>
+        <button data-page="register">Registros</button>
+        <button data-page="reports">Reportes</button>
+        <button data-page="costs">Costos</button>
+        <button data-page="recipes">Recetas</button>
+        <button data-page="help">Ayuda</button>
+      </nav>
+    </div>
+
+    <!-- DASHBOARD -->
+    <main id="main-content">
+      <section id="page-dashboard" class="card" aria-live="polite">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <strong>Resumen rápido</strong>
+            <div class="muted">Panel principal</div>
+          </div>
+
+          <div class="kpi" aria-hidden>
+            <div class="item"><div class="muted">Recursos</div><div id="k-res-count">0</div></div>
+            <div class="item"><div class="muted">Registros</div><div id="k-log-count">0</div></div>
+            <div class="item"><div class="muted">Valor inventario (CLP)</div><div id="k-total-inv">0</div></div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button id="btn-update-exchange" class="btn btn-ghost">Actualizar tipo de cambio</button>
+          <div class="muted" id="exchange-info">Tipo USD→CLP: —</div>
+        </div>
+
+        <div style="margin-top:12px">
+          <canvas id="dashboard-chart" height="140"></canvas>
+        </div>
+      </section>
+
+      <!-- RESOURCES -->
+      <section id="page-resources" class="card" style="display:none" aria-hidden="true">
+        <strong>Administrar recursos</strong>
+        <div style="margin-top:8px" class="two-col">
+          <div>
+            <label>Nombre</label>
+            <input id="res-name" placeholder="Ej: Harina de trigo" inputmode="text">
+            <label>Unidad</label>
+            <input id="res-unit" placeholder="kg, L, paquete..." inputmode="text">
+            <label>Precio (CLP)</label>
+            <input id="res-price-clp" type="number" placeholder="Ej. 1200" inputmode="numeric">
+            <label>Stock</label>
+            <input id="res-stock" type="number" placeholder="Cantidad disponible" inputmode="numeric">
+            <label>Descripción</label>
+            <textarea id="res-desc" rows="2" placeholder="Opcional"></textarea>
+
+            <div style="display:flex;gap:8px;margin-top:6px">
+              <button id="add-resource" class="btn btn-primary">Agregar</button>
+              <button id="update-resource" class="btn btn-ghost" style="display:none">Guardar</button>
+              <button id="cancel-edit" class="btn btn-ghost" style="display:none">Cancelar</button>
+            </div>
+          </div>
+
+          <div>
+            <strong>Lista de recursos</strong>
+            <div class="table-wrap" style="margin-top:8px">
+              <table aria-label="Recursos">
+                <thead><tr><th>Nombre</th><th>Unidad</th><th>Precio CLP</th><th>Precio USD</th><th>Stock</th><th>Total CLP</th><th></th></tr></thead>
+                <tbody id="resources-table"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- REGISTER -->
+      <section id="page-register" class="card" style="display:none" aria-hidden="true">
+        <strong>Registrar uso / consumo</strong>
+        <div style="margin-top:8px" class="two-col">
+          <div>
+            <label>Recurso</label>
+            <select id="sel-resource"></select>
+            <label>Cantidad usada</label>
+            <input id="usage-amount" type="number" placeholder="Ej. 2" inputmode="numeric">
+          </div>
+
+          <div>
+            <label>Fecha y hora</label>
+            <input id="usage-ts" type="datetime-local">
+            <label>Notas</label>
+            <input id="usage-notes" placeholder="Opcional">
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button id="submit-usage" class="btn btn-primary">Registrar</button>
+              <button id="reset-usage" class="btn btn-ghost">Limpiar</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- REPORTS -->
+      <section id="page-reports" class="card" style="display:none" aria-hidden="true">
+        <strong>Reportes</strong>
+        <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <label class="muted">Desde</label><input id="r-from" type="date">
+          <label class="muted">Hasta</label><input id="r-to" type="date">
+          <button id="r-refresh" class="btn btn-ghost">Actualizar</button>
+        </div>
+
+        <div style="margin-top:10px">
+          <canvas id="chart-by-resource" height="220"></canvas>
+        </div>
+
+        <div style="margin-top:10px">
+          <h4>Últimos registros</h4>
+          <div class="table-wrap">
+            <table><tbody id="recent-logs"></tbody></table>
+          </div>
+        </div>
+      </section>
+
+      <!-- COSTS -->
+      <section id="page-costs" class="card" style="display:none" aria-hidden="true">
+        <strong>Costos y presupuestos</strong>
+        <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button id="force-exchange" class="btn btn-primary">Forzar actualización tipo de cambio</button>
+          <div class="muted">Última actualización: <span id="last-exchange">—</span></div>
+        </div>
+
+        <div style="margin-top:10px" class="table-wrap">
+          <table>
+            <thead><tr><th>Recurso</th><th>Precio CLP</th><th>Precio USD</th><th>Stock</th><th>Valor total CLP</th></tr></thead>
+            <tbody id="costs-table"></tbody>
+          </table>
+        </div>
+
+        <div style="margin-top:10px;display:flex;gap:12px;flex-wrap:wrap">
+          <div class="card" style="min-width:200px">
+            <div class="muted">Valor inventario (CLP)</div>
+            <div id="total-inventory-clp" style="font-weight:700;font-size:18px">—</div>
+          </div>
+
+          <div class="card" style="min-width:240px">
+            <div class="muted">Proyección mensual (30 días)</div>
+            <div id="projection-monthly" style="font-weight:700">—</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RECIPES -->
+      <section id="page-recipes" class="card" style="display:none" aria-hidden="true">
+        <strong>Recetas</strong>
+        <div style="margin-top:8px" class="two-col">
+          <div>
+            <label>Nombre receta</label>
+            <input id="recipe-name" placeholder="Ej: Brownie clásico">
+            <label>Seleccionar ingrediente</label>
+            <select id="recipe-ingredient"></select>
+            <label>Cantidad ingrediente</label>
+            <input id="recipe-qty" type="number" placeholder="Ej: 0.5" inputmode="decimal">
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button id="add-ingredient" class="btn btn-primary">Añadir ingrediente</button>
+              <button id="save-recipe" class="btn btn-ghost">Guardar receta</button>
+            </div>
+          </div>
+
+          <div>
+            <strong>Ingredientes</strong>
+            <ul id="recipe-ingredients" style="margin-top:8px"></ul>
+            <div style="margin-top:8px">
+              <div class="muted">Costo CLP: <span id="recipe-cost-clp">0</span></div>
+              <div class="muted">Costo USD: <span id="recipe-cost-usd">0</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:10px">
+          <h4>Recetas guardadas</h4>
+          <ul id="saved-recipes"></ul>
+        </div>
+      </section>
+
+      <!-- HELP -->
+      <section id="page-help" class="card" style="display:none" aria-hidden="true">
+        <strong>Ayuda</strong>
+        <ol style="margin-top:8px" class="muted">
+          <li>Agrega recursos con precio CLP y stock.</li>
+          <li>Registra consumos en Registros — sirven para la proyección mensual.</li>
+          <li>En Costos verás el precio en USD calculado automáticamente (cada 30 min).</li>
+          <li>Puedes guardar recetas y ver su costo exacto.</li>
+        </ol>
+        <p class="muted">Tipo de cambio: <strong>https://exchangerate.host</strong> (gratuito).</p>
+      </section>
+
+      <footer>© 2025 Gestok</footer>
+    </main>
+  </div>
+
+<script>
+/* -------------------------
+   Gestok Mobile — single file
+   Keys: gestok_resources_v1, gestok_usage_v1, gestok_recipes_v1, gestok_exchange_v1
+   Exchange: https://api.exchangerate.host/latest?base=USD&symbols=CLP
+   Update interval: 30 minutes
+   ------------------------- */
+
+const LS_RES = 'gestok_resources_v1';
+const LS_USAGE = 'gestok_usage_v1';
+const LS_RECIPES = 'gestok_recipes_v1';
+const LS_EXCHANGE = 'gestok_exchange_v1';
+const UPDATE_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
+
+/* ---------- Helpers ---------- */
+function load(k){ try{ return JSON.parse(localStorage.getItem(k)||'null') || []; }catch(e){return [];} }
+function save(k,v){ localStorage.setItem(k, JSON.stringify(v || [])); }
+function loadObj(k){ try{ return JSON.parse(localStorage.getItem(k)||'null'); }catch(e){return null;} }
+function saveObj(k,v){ localStorage.setItem(k, JSON.stringify(v)); }
+function genId(){ return 'id_' + Math.random().toString(36).slice(2,9); }
+function fmtCLP(n){ return Number(n||0).toLocaleString('es-CL'); }
+function nowISOLocal(){ const d=new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0,16); }
+
+/* ---------- Drawer (hamburger) ---------- */
+const hamb = document.getElementById('hamb');
+const drawer = document.getElementById('drawer');
+hamb.addEventListener('click', ()=> {
+  const open = drawer.classList.toggle('open');
+  drawer.setAttribute('aria-hidden', !open);
+});
+drawer.querySelectorAll('button[data-page]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const page = btn.getAttribute('data-page');
+    openPage(page);
+    drawer.classList.remove('open');
+    drawer.setAttribute('aria-hidden','true');
+  });
+});
+
+/* ---------- Page routing ---------- */
+const pages = {
+  dashboard: document.getElementById('page-dashboard'),
+  resources: document.getElementById('page-resources'),
+  register: document.getElementById('page-register'),
+  reports: document.getElementById('page-reports'),
+  costs: document.getElementById('page-costs'),
+  recipes: document.getElementById('page-recipes'),
+  help: document.getElementById('page-help'),
+};
+function openPage(key){
+  Object.values(pages).forEach(p => { p.style.display = 'none'; p.setAttribute('aria-hidden', 'true'); });
+  const p = pages[key];
+  if(p){ p.style.display = 'block'; p.setAttribute('aria-hidden', 'false'); }
+  // special renders
+  if(key==='dashboard') refreshDashboard();
+  if(key==='resources') renderResources();
+  if(key==='reports') refreshReports();
+  if(key==='costs') renderCosts();
+  if(key==='recipes') renderSavedRecipes();
+}
+// default
+openPage('dashboard');
+
+/* ---------- Exchange rate (USD->CLP) ---------- */
+async function fetchExchangeRate(){
+  try{
+    const res = await fetch('https://api.exchangerate.host/latest?base=USD&symbols=CLP');
+    const j = await res.json();
+    if(j && j.rates && j.rates.CLP){
+      const obj = { rate: j.rates.CLP, ts: new Date().toISOString() };
+      saveObj(LS_EXCHANGE, obj);
+      return obj;
+    }
+  } catch(e){ console.error('exchange fetch error', e); }
+  return loadObj(LS_EXCHANGE) || null;
+}
+async function updateExchangeUI(){
+  const ex = loadObj(LS_EXCHANGE);
+  if(ex){
+    document.getElementById('exchange-info').textContent = `1 USD = ${fmtCLP(ex.rate)} CLP`;
+    document.getElementById('last-exchange').textContent = new Date(ex.ts).toLocaleString();
+  } else {
+    document.getElementById('exchange-info').textContent = 'Tipo no disponible';
+  }
+  recalcPricesUSD(); renderCosts(); refreshDashboard();
+}
+document.getElementById('btn-update-exchange').addEventListener('click', async ()=>{
+  const btn = document.getElementById('btn-update-exchange');
+  btn.textContent = 'Actualizando...';
+  await fetchExchangeRate();
+  await updateExchangeUI();
+  btn.textContent = 'Actualizar tipo de cambio';
+});
+document.getElementById('force-exchange').addEventListener('click', async ()=>{
+  const btn = document.getElementById('force-exchange');
+  btn.textContent = 'Actualizando...';
+  await fetchExchangeRate();
+  await updateExchangeUI();
+  btn.textContent = 'Forzar actualización tipo de cambio';
+});
+
+/* periodic update */
+setInterval(async ()=>{ await fetchExchangeRate(); await updateExchangeUI(); }, UPDATE_INTERVAL_MS);
+
+/* ---------- Resources ---------- */
+let editResourceId = null;
+const resName = document.getElementById('res-name');
+const resUnit = document.getElementById('res-unit');
+const resPriceCLP = document.getElementById('res-price-clp');
+const resStock = document.getElementById('res-stock');
+const resDesc = document.getElementById('res-desc');
+
+document.getElementById('add-resource').addEventListener('click', addResource);
+document.getElementById('update-resource').addEventListener('click', saveEditResource);
+document.getElementById('cancel-edit').addEventListener('click', resetResourceForm);
+
+function addResource(){
+  const name = resName.value.trim();
+  const unit = resUnit.value.trim();
+  const priceCLP = Number(resPriceCLP.value);
+  const stock = Number(resStock.value) || 0;
+  const desc = resDesc.value.trim();
+  if(!name || !unit || !priceCLP){ alert('Completa nombre, unidad y precio (CLP)'); return; }
+  const arr = load(LS_RES);
+  arr.push({ id: genId(), name, unit, priceCLP, stock, desc, priceUSD: 0 });
+  save(LS_RES, arr);
+  resetResourceForm();
+  renderResources();
+  populateSelectors();
+  recalcPricesUSD();
+  renderCosts();
+}
+
+function renderResources(){
+  const arr = load(LS_RES);
+  const tbody = document.getElementById('resources-table');
+  tbody.innerHTML = '';
+  arr.forEach(r=>{
+    const priceUSD = r.priceUSD ? Number(r.priceUSD) : 0;
+    const totalCLP = (Number(r.priceCLP)||0) * (Number(r.stock)||0);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${r.name}<div class="muted">${r.desc||''}</div></td>
+                    <td>${r.unit}</td>
+                    <td>${fmtCLP(r.priceCLP)}</td>
+                    <td>${priceUSD ? priceUSD.toFixed(2) : '-'}</td>
+                    <td>${r.stock||0}</td>
+                    <td>${fmtCLP(totalCLP)}</td>
+                    <td>
+                      <button class="btn btn-ghost" data-act="edit" data-id="${r.id}">Editar</button>
+                      <button class="btn btn-danger" data-act="del" data-id="${r.id}">Eliminar</button>
+                    </td>`;
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click', ()=> {
+      const act = b.getAttribute('data-act'); const id = b.getAttribute('data-id');
+      if(act==='edit') startEditResource(id);
+      if(act==='del') deleteResource(id);
+    });
+  });
+}
+
+function startEditResource(id){
+  const arr = load(LS_RES);
+  const r = arr.find(x=>x.id===id);
+  if(!r) return alert('Recurso no encontrado');
+  editResourceId = id;
+  resName.value=r.name; resUnit.value=r.unit; resPriceCLP.value=r.priceCLP; resStock.value=r.stock; resDesc.value=r.desc||'';
+  document.getElementById('add-resource').style.display='none';
+  document.getElementById('update-resource').style.display='inline-block';
+  document.getElementById('cancel-edit').style.display='inline-block';
+}
+
+function saveEditResource(){
+  if(!editResourceId) return;
+  const name = resName.value.trim();
+  const unit = resUnit.value.trim();
+  const priceCLP = Number(resPriceCLP.value);
+  const stock = Number(resStock.value) || 0;
+  const desc = resDesc.value.trim();
+  if(!name || !unit || !priceCLP){ alert('Completa nombre, unidad y precio (CLP)'); return; }
+  const arr = load(LS_RES);
+  const idx = arr.findIndex(x=>x.id===editResourceId);
+  if(idx===-1) return alert('Error');
+  arr[idx].name=name; arr[idx].unit=unit; arr[idx].priceCLP=priceCLP; arr[idx].stock=stock; arr[idx].desc=desc;
+  save(LS_RES, arr);
+  resetResourceForm(); renderResources(); populateSelectors(); recalcPricesUSD(); renderCosts();
+}
+
+function resetResourceForm(){
+  editResourceId = null;
+  resName.value=''; resUnit.value=''; resPriceCLP.value=''; resStock.value=''; resDesc.value='';
+  document.getElementById('add-resource').style.display='inline-block';
+  document.getElementById('update-resource').style.display='none';
+  document.getElementById('cancel-edit').style.display='none';
+}
+
+function deleteResource(id){
+  if(!confirm('Eliminar recurso y registros asociados?')) return;
+  let arr = load(LS_RES);
+  arr = arr.filter(x=>x.id!==id);
+  save(LS_RES, arr);
+  let logs = load(LS_USAGE);
+  logs = logs.filter(l=> l.resourceId !== id);
+  save(LS_USAGE, logs);
+  renderResources(); populateSelectors(); renderCosts(); refreshReports(); refreshDashboard();
+}
+
+/* ---------- Populate selects ---------- */
+function populateSelectors(){
+  const arr = load(LS_RES);
+  const sel = document.getElementById('sel-resource');
+  const recSel = document.getElementById('recipe-ingredient');
+  sel.innerHTML = '<option value="">Seleccione recurso</option>';
+  recSel.innerHTML = '<option value="">Seleccione recurso</option>';
+  arr.forEach(r=>{
+    sel.insertAdjacentHTML('beforeend', `<option value="${r.id}">${r.name} (${r.unit})</option>`);
+    recSel.insertAdjacentHTML('beforeend', `<option value="${r.id}">${r.name} (${r.unit})</option>`);
+  });
+}
+
+/* ---------- Usage logs ---------- */
+document.getElementById('submit-usage').addEventListener('click', addUsage);
+document.getElementById('reset-usage').addEventListener('click', ()=>{ document.getElementById('usage-amount').value=''; document.getElementById('usage-notes').value=''; document.getElementById('usage-ts').value = nowISOLocal(); });
+
+function addUsage(){
+  const resourceId = document.getElementById('sel-resource').value;
+  const amount = Number(document.getElementById('usage-amount').value);
+  const ts = document.getElementById('usage-ts').value || new Date().toISOString();
+  const notes = document.getElementById('usage-notes').value || '';
+  if(!resourceId || !amount || amount<=0) { alert('Selecciona recurso y cantidad válida'); return; }
+  const logs = load(LS_USAGE);
+  logs.push({ id: genId(), resourceId, amount, ts, notes });
+  save(LS_USAGE, logs);
+  alert('Registro guardado');
+  refreshReports(); refreshDashboard();
+}
+
+/* ---------- Reports ---------- */
+let chartByResource = null;
+document.getElementById('r-refresh').addEventListener('click', refreshReports);
+
+function refreshReports(){
+  const res = load(LS_RES);
+  const logs = load(LS_USAGE);
+  const fromVal = document.getElementById('r-from').value;
+  const toVal = document.getElementById('r-to').value;
+  const from = fromVal ? new Date(fromVal+'T00:00:00') : null;
+  const to = toVal ? new Date(toVal+'T23:59:59') : null;
+  const agg = {};
+  res.forEach(r => agg[r.id] = 0);
+  logs.forEach(l=>{
+    const t = new Date(l.ts || l.ts);
+    if(from && t < from) return;
+    if(to && t > to) return;
+    if(agg.hasOwnProperty(l.resourceId)) agg[l.resourceId] += Number(l.amount) || 0;
+  });
+  const labels = res.map(r=> r.name);
+  const data = res.map(r=> Math.round((agg[r.id]||0)*100)/100);
+  if(chartByResource) chartByResource.destroy();
+  chartByResource = new Chart(document.getElementById('chart-by-resource'), {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'Consumo', data, backgroundColor: labels.map(()=> 'rgba(47,111,159,0.85)') }] },
+    options: { plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true } } }
+  });
+
+  const recentRoot = document.getElementById('recent-logs');
+  recentRoot.innerHTML = '';
+  const recent = logs.slice().sort((a,b)=> new Date(b.ts) - new Date(a.ts)).slice(0,12);
+  recent.forEach(l=>{
+    const r = res.find(rr=>rr.id===l.resourceId) || {name:'(eliminado)'};
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${r.name}</td><td>${l.amount}</td><td>${new Date(l.ts).toLocaleString()}</td><td>${l.notes||''}</td>`;
+    recentRoot.appendChild(tr);
+  });
+}
+
+/* ---------- Costs (CLP -> USD conversion) ---------- */
+async function recalcPricesUSD(){
+  const ex = loadObj(LS_EXCHANGE);
+  const rate = ex ? Number(ex.rate) : null;
+  let arr = load(LS_RES);
+  arr = arr.map(r=>{
+    const priceUSD = rate ? (Number(r.priceCLP || 0) / rate) : 0;
+    return {...r, priceUSD: priceUSD ? Number(priceUSD.toFixed(2)) : 0};
+  });
+  save(LS_RES, arr);
+  renderResources(); renderCosts();
+}
+
+function renderCosts(){
+  const arr = load(LS_RES);
+  const tbody = document.getElementById('costs-table');
+  tbody.innerHTML = '';
+  let totalInv = 0;
+  arr.forEach(r=>{
+    const totalCLP = (Number(r.priceCLP)||0) * (Number(r.stock)||0);
+    totalInv += totalCLP;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${r.name}</td><td>${fmtCLP(r.priceCLP)}</td><td>${r.priceUSD ? r.priceUSD.toFixed(2) : '-'}</td><td>${r.stock||0}</td><td>${fmtCLP(totalCLP)}</td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById('total-inventory-clp').textContent = fmtCLP(totalInv);
+  document.getElementById('k-total-inv').textContent = fmtCLP(totalInv);
+  const projection = calculateMonthlyProjection();
+  document.getElementById('projection-monthly').textContent = projection ? fmtCLP(projection) : '—';
+}
+
+/* ---------- Projection monthly ---------- */
+function calculateMonthlyProjection(){
+  const logs = load(LS_USAGE);
+  const res = load(LS_RES);
+  if(!logs || logs.length===0) return 0;
+  const grouped = {};
+  let minDate = null, maxDate = null;
+  logs.forEach(l=>{
+    const t = new Date(l.ts);
+    if(!minDate || t < minDate) minDate = t;
+    if(!maxDate || t > maxDate) maxDate = t;
+    if(!grouped[l.resourceId]) grouped[l.resourceId]=0;
+    grouped[l.resourceId] += Number(l.amount)||0;
+  });
+  const daysSpan = Math.max(1, Math.ceil((maxDate - minDate)/(1000*60*60*24)));
+  let monthlyCost = 0;
+  res.forEach(r=>{
+    const totalUsed = grouped[r.id] || 0;
+    const avgPerDay = totalUsed / daysSpan;
+    const projected30 = avgPerDay * 30;
+    monthlyCost += projected30 * (Number(r.priceCLP)||0);
+  });
+  return Math.round(monthlyCost);
+}
+
+/* ---------- Recipes ---------- */
+let recipeIngredients = [];
+function addIngredientToRecipe(){
+  const rid = document.getElementById('recipe-ingredient').value;
+  const qty = Number(document.getElementById('recipe-qty').value);
+  if(!rid || !qty || qty<=0) return alert('Selecciona ingrediente y cantidad válida');
+  const res = load(LS_RES).find(r=> r.id===rid);
+  if(!res) return alert('Recurso no encontrado');
+  recipeIngredients.push({ id: genId(), resourceId: rid, qty });
+  renderRecipeIngredients();
+}
+function renderRecipeIngredients(){
+  const ul = document.getElementById('recipe-ingredients');
+  ul.innerHTML = '';
+  const resArr = load(LS_RES);
+  let totalCLP = 0, totalUSD = 0;
+  recipeIngredients.forEach((ing, idx)=>{
+    const r = resArr.find(rr=> rr.id===ing.resourceId) || {};
+    const costCLP = (Number(r.priceCLP)||0) * Number(ing.qty || 0);
+    const costUSD = (Number(r.priceUSD)||0) * Number(ing.qty || 0);
+    totalCLP += costCLP; totalUSD += costUSD;
+    const li = document.createElement('li');
+    li.innerHTML = `${r.name || '(eliminado)'} — ${ing.qty} ${r.unit || ''} — CLP ${fmtCLP(costCLP)} <button class="btn btn-ghost" data-idx="${idx}">Eliminar</button>`;
+    ul.appendChild(li);
+  });
+  document.getElementById('recipe-cost-clp').textContent = fmtCLP(totalCLP);
+  document.getElementById('recipe-cost-usd').textContent = totalUSD ? totalUSD.toFixed(2) : '0';
+  ul.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click', ()=>{ const i = Number(b.getAttribute('data-idx')); recipeIngredients.splice(i,1); renderRecipeIngredients(); });
+  });
+}
+document.getElementById('add-ingredient').addEventListener('click', addIngredientToRecipe);
+
+function saveRecipe(){
+  const name = document.getElementById('recipe-name').value.trim();
+  if(!name) return alert('Nombre de receta requerido');
+  if(recipeIngredients.length === 0) return alert('Añade al menos un ingrediente');
+  const recipes = load(LS_RECIPES);
+  const res = load(LS_RES);
+  const costCLP = recipeIngredients.reduce((s,ing)=> {
+    const r = res.find(rr=> rr.id===ing.resourceId) || {};
+    return s + ((Number(r.priceCLP)||0) * (Number(ing.qty)||0));
+  },0);
+  const costUSD = recipeIngredients.reduce((s,ing)=> {
+    const r = res.find(rr=> rr.id===ing.resourceId) || {};
+    return s + ((Number(r.priceUSD)||0) * (Number(ing.qty)||0));
+  },0);
+  recipes.push({ id: genId(), name, ingredients: recipeIngredients.slice(), costCLP, costUSD, created: new Date().toISOString() });
+  save(LS_RECIPES, recipes);
+  recipeIngredients = []; document.getElementById('recipe-name').value=''; renderRecipeIngredients(); renderSavedRecipes();
+  alert('Receta guardada');
+}
+document.getElementById('save-recipe').addEventListener('click', saveRecipe);
+
+function renderSavedRecipes(){
+  const ul = document.getElementById('saved-recipes');
+  const recipes = load(LS_RECIPES);
+  ul.innerHTML = '';
+  recipes.forEach(r=>{
+    const li = document.createElement('li');
+    li.innerHTML = `<strong>${r.name}</strong> — CLP ${fmtCLP(r.costCLP)} — <button class="btn btn-ghost" data-id="${r.id}">Ver</button> <button class="btn btn-danger" data-id="${r.id}" data-act="del">Eliminar</button>`;
+    ul.appendChild(li);
+  });
+  ul.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click', (e)=>{
+      const id = b.getAttribute('data-id');
+      const act = b.getAttribute('data-act');
+      if(act==='del'){ if(confirm('Eliminar receta?')){ const arr=load(LS_RECIPES).filter(x=>x.id!==id); save(LS_RECIPES,arr); renderSavedRecipes(); } }
+      else { const rec = load(LS_RECIPES).find(x=>x.id===id); if(rec){ alert(`Receta: ${rec.name}\nCosto CLP: ${fmtCLP(rec.costCLP)}\nIngredientes:\n${rec.ingredients.map(i=>{ const r=load(LS_RES).find(rr=>rr.id===i.resourceId)||{}; return `${r.name||'(el)'} ${i.qty} ${r.unit||''}`}).join('\n')}`); } }
+    });
+  });
+}
+
+/* ---------- Recalc USD and UI ---------- */
+async function recalcPricesUSD(){
+  const ex = loadObj(LS_EXCHANGE);
+  const rate = ex ? Number(ex.rate) : null;
+  let arr = load(LS_RES);
+  arr = arr.map(r=>{
+    const priceUSD = rate ? (Number(r.priceCLP || 0) / rate) : 0;
+    return {...r, priceUSD: priceUSD ? Number(priceUSD.toFixed(2)) : 0};
+  });
+  save(LS_RES, arr);
+  renderResources(); renderCosts();
+}
+
+/* ---------- Dashboard ---------- */
+function refreshDashboard(){
+  const res = load(LS_RES);
+  const logs = load(LS_USAGE);
+  document.getElementById('k-res-count').textContent = res.length;
+  document.getElementById('k-log-count').textContent = logs.length;
+  const totalInv = res.reduce((s,r)=> s + ((Number(r.priceCLP)||0) * (Number(r.stock)||0)),0);
+  document.getElementById('k-total-inv').textContent = fmtCLP(totalInv);
+  const ex = loadObj(LS_EXCHANGE);
+  document.getElementById('exchange-info').textContent = ex ? `1 USD = ${fmtCLP(ex.rate)} CLP` : 'Tipo no disponible';
+  document.getElementById('last-exchange').textContent = ex ? new Date(ex.ts).toLocaleString() : '—';
+  // chart
+  const labels = res.map(r=> r.name);
+  const data = res.map(r=> Number(r.priceCLP||0) * Number(r.stock||0));
+  const ctx = document.getElementById('dashboard-chart').getContext('2d');
+  if(window._dashChart) window._dashChart.destroy();
+  window._dashChart = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[{ label:'Valor inventario CLP', data, backgroundColor: labels.map(()=> 'rgba(47,111,159,0.9)') }] },
+    options:{ plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true } } }
+  });
+}
+
+/* ---------- Init ---------- */
+async function init(){
+  populateSelectors();
+  document.getElementById('usage-ts').value = nowISOLocal();
+  await fetchExchangeRate(); await updateExchangeUI();
+  await recalcPricesUSD();
+  renderResources(); renderCosts(); refreshDashboard(); renderSavedRecipes(); refreshReports();
+  setInterval(async ()=>{ await fetchExchangeRate(); await updateExchangeUI(); }, UPDATE_INTERVAL_MS);
+}
+init();
+
+/* ---------- Utility debug ---------- */
+window.Gestok = { load, save, fetchExchangeRate, recalcPricesUSD };
+
+</script>
+</body>
+</html>

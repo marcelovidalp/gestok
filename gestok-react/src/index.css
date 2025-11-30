@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg: #f6f7f9;
+    --card: #ffffff;
+    --muted: #6b7280;
+    --accent: #2f6f9f;
+    --accent-strong: #254e6f;
+    --danger: #ef4444;
+    --radius: 12px;
+    --gap: 12px;
+    --touch: 18px;
+  }
+
+  .dark {
+    --bg: #111827;
+    --card: #1f2937;
+    --muted: #9ca3af;
+    --accent: #3b82f6;
+    --accent-strong: #2563eb;
+    --danger: #ef4444;
+    color: #f9fafb;
+  }
+
+  html,
+  body {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: #0f172a;
+    -webkit-tap-highlight-color: transparent;
+    font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  }
+
+  .dark body {
+    color: #f9fafb;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-3 rounded-xl border-0 font-semibold text-base cursor-pointer transition-colors duration-200;
+  }
+
+  .btn-primary {
+    @apply bg-accent text-white hover:bg-accent-strong;
+  }
+
+  .btn-ghost {
+    @apply bg-transparent border border-gray-200 dark:border-gray-600 text-accent-strong dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700;
+  }
+
+  .btn-danger {
+    @apply bg-danger text-white hover:bg-red-600;
+  }
+
+  .card {
+    @apply bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700;
+  }
+
+  .input {
+    @apply w-full p-3 text-base rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent;
+  }
+
+  .select {
+    @apply w-full p-3 text-base rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent;
+  }
+
+  .textarea {
+    @apply w-full p-3 text-base rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent;
+  }
+}
