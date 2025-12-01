@@ -1,20 +1,12 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { Card, Chart } from '@/components/ui'
-import { Button } from '@/components/ui'
 import useResourceStore from '@/stores/resourceStore'
 import useUsageStore from '@/stores/usageStore'
 import { fmtCLP, calculateMonthlyProjection } from '@/utils/helpers'
 
 const Dashboard: React.FC = () => {
-  const { resources, exchangeRate, updateExchangeRate, getTotalInventoryValue } = useResourceStore()
+  const { resources, getTotalInventoryValue } = useResourceStore()
   const { usageLogs } = useUsageStore()
-
-  useEffect(() => {
-    // Auto-update exchange rate on mount if needed
-    if (!exchangeRate || Date.now() - new Date(exchangeRate.ts).getTime() > 30 * 60 * 1000) {
-      updateExchangeRate()
-    }
-  }, [])
 
   const totalResources = resources.length
   const totalLogs = usageLogs.length
@@ -45,15 +37,6 @@ const Dashboard: React.FC = () => {
           <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl text-center">
             <div className="text-sm text-muted dark:text-gray-400">Valor inventario (CLP)</div>
             <div className="text-2xl font-bold text-accent dark:text-blue-400">{fmtCLP(totalInventoryValue)}</div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4 mb-6 flex-wrap">
-          <Button variant="ghost" onClick={updateExchangeRate}>
-            Actualizar tipo de cambio
-          </Button>
-          <div className="text-sm text-muted dark:text-gray-400">
-            Tipo USD→CLP: {exchangeRate ? `${fmtCLP(exchangeRate.rate)}` : '—'}
           </div>
         </div>
 

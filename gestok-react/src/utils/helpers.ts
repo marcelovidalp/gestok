@@ -1,11 +1,9 @@
-import { ExchangeRate, Resource, UsageLog } from '@/types'
+import { Resource, UsageLog } from '@/types'
 
 // Storage keys
 export const LS_RES = 'gestok_resources_v1'
 export const LS_USAGE = 'gestok_usage_v1'
 export const LS_RECIPES = 'gestok_recipes_v1'
-export const LS_EXCHANGE = 'gestok_exchange_v1'
-export const UPDATE_INTERVAL_MS = 30 * 60 * 1000 // 30 minutes
 
 /**
  * Load array from localStorage
@@ -76,29 +74,6 @@ export function nowISOLocal(): string {
   const d = new Date()
   d.setMinutes(d.getMinutes() - d.getTimezoneOffset())
   return d.toISOString().slice(0, 16)
-}
-
-/**
- * Fetch exchange rate from API
- */
-export async function fetchExchangeRate(): Promise<ExchangeRate | null> {
-  try {
-    const res = await fetch('https://api.exchangerate.host/latest?base=USD&symbols=CLP')
-    const j = await res.json()
-    
-    if (j && j.rates && j.rates.CLP) {
-      const obj: ExchangeRate = { 
-        rate: j.rates.CLP, 
-        ts: new Date().toISOString() 
-      }
-      saveObj(LS_EXCHANGE, obj)
-      return obj
-    }
-  } catch (e) {
-    console.error('Exchange fetch error:', e)
-  }
-  
-  return loadObj<ExchangeRate>(LS_EXCHANGE)
 }
 
 /**

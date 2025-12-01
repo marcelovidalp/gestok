@@ -6,7 +6,6 @@ export interface Resource {
   name: string
   unit: string
   priceCLP: number
-  priceUSD: number
   stock: number
   desc?: string
   createdAt?: string
@@ -41,16 +40,7 @@ export interface Recipe {
   name: string
   ingredients: RecipeIngredient[]
   costCLP: number
-  costUSD: number
   created: string
-}
-
-/**
- * Exchange rate data
- */
-export interface ExchangeRate {
-  rate: number
-  ts: string // ISO timestamp
 }
 
 /**
