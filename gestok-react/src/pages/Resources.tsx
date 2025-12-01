@@ -42,7 +42,6 @@ const Resources: React.FC = () => {
       const newResource: Resource = {
         ...resourceData as Resource,
         id: genId(),
-        priceUSD: 0,
         createdAt: new Date().toISOString()
       }
       addResource(newResource)

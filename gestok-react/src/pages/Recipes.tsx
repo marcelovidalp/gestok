@@ -34,15 +34,14 @@ const Recipes: React.FC = () => {
   }
 
   const calculateCost = () => {
-    let costCLP = 0, costUSD = 0
+    let costCLP = 0
     ingredients.forEach(ing => {
       const resource = resources.find(r => r.id === ing.resourceId)
       if (resource) {
         costCLP += resource.priceCLP * ing.qty
-        costUSD += resource.priceUSD * ing.qty
       }
     })
-    return { costCLP, costUSD }
+    return { costCLP }
   }
 
   const saveRecipe = () => {
@@ -61,7 +60,6 @@ const Recipes: React.FC = () => {
       name: recipeName,
       ingredients: ingredients,
       costCLP: costs.costCLP,
-      costUSD: costs.costUSD,
       created: new Date().toISOString()
     }
 
@@ -129,7 +127,6 @@ const Recipes: React.FC = () => {
           )}
           <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
             <div className="text-sm text-muted dark:text-gray-300">Costo CLP: <span className="font-semibold">{fmtCLP(costs.costCLP)}</span></div>
-            <div className="text-sm text-muted dark:text-gray-300">Costo USD: <span className="font-semibold">{costs.costUSD.toFixed(2)}</span></div>
           </div>
         </div>
       </Card>
@@ -149,8 +146,7 @@ const Recipes: React.FC = () => {
                     <Trash2 size={14} />
                   </Button>
                 </div>
-                <div className="text-sm text-muted dark:text-gray-300">CLP: {fmtCLP(recipe.costCLP)}</div>
-                <div className="text-sm text-muted dark:text-gray-300">USD: {recipe.costUSD.toFixed(2)}</div>
+                <div className="text-sm text-muted dark:text-gray-300">Costo: {fmtCLP(recipe.costCLP)}</div>
                 <div className="text-xs text-muted dark:text-gray-400 mt-2">{recipe.ingredients.length} ingredientes</div>
               </div>
             ))

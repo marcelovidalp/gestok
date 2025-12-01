@@ -21,12 +21,12 @@ const Help: React.FC = () => {
             
             <li>
               <strong className="text-gray-900 dark:text-white">3. Consulta costos</strong>
-              <p className="text-sm mt-1">En "Costos" verás el precio en USD calculado automáticamente según el tipo de cambio (actualizado cada 30 minutos).</p>
+              <p className="text-sm mt-1">En "Costos" verás el valor total de tu inventario y proyecciones de consumo mensual.</p>
             </li>
             
             <li>
               <strong className="text-gray-900 dark:text-white">4. Crea recetas</strong>
-              <p className="text-sm mt-1">Puedes crear recetas combinando múltiples ingredientes y ver su costo total exacto en CLP y USD.</p>
+              <p className="text-sm mt-1">Puedes crear recetas combinando múltiples ingredientes y ver su costo total exacto en CLP.</p>
             </li>
             
             <li>
@@ -35,14 +35,7 @@ const Help: React.FC = () => {
             </li>
           </ol>
 
-          <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-            <h4 className="font-semibold text-gray-900 dark:text-white mb-2">💡 Tipo de cambio</h4>
-            <p className="text-sm text-muted dark:text-gray-300">
-              La aplicación utiliza <strong>exchangerate.host</strong> (API gratuita) para obtener el tipo de cambio USD→CLP automáticamente cada 30 minutos.
-            </p>
-          </div>
-
-          <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
+          <div className="mt-8 p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
             <h4 className="font-semibold text-gray-900 dark:text-white mb-2">💾 Almacenamiento local</h4>
             <p className="text-sm text-muted dark:text-gray-300">
               Todos tus datos se guardan localmente en tu navegador (localStorage). No se envía información a ningún servidor externo.
